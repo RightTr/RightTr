@@ -14,7 +14,9 @@ My work mainly focuses on **multisensor fusion for localization 📍, mapping �
 
 # Education
 
-#### 🏫 Wuhan University 2023-now
+### 🏫 Wuhan University 
+* 🎓 B.Eng. in Robotics Engineering 🤖 | 2023-Present | Wuhan, Hubei, China
+* Research on multisensor fusion for localization and mapping in challenging environments.
 
 <p align="center">
     <img src="assets/WuhanUniversity.svg?v=2" width="150" />
@@ -38,4 +40,10 @@ My work mainly focuses on **multisensor fusion for localization 📍, mapping �
 
 <p align="center">
     <img src="https://img.shields.io/badge/NVIDIA_Jetson-76B900?logo=nvidia&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/STM32-03234B?logo=stmicroelectronics&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/Arduino-00979D?logo=arduino&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/Raspberry_Pi-A22846?logo=raspberrypi&logoColor=white" />
+</p>
+
+* 📝 Documentation & Writing
+
+<p align="center">
+    <img src="https://img.shields.io/badge/Microsoft_Word-2B579A?logo=microsoftword&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/LaTeX-008080?logo=latex&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/Markdown-000000?logo=markdown&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/README-1F6FEB?logo=readme&logoColor=white" />
 </p>
