@@ -9,12 +9,12 @@ My work mainly focuses on **multisensor fusion for localization 📍, mapping �
 # Contact
 
 <p align="center">
-    <a href="mailto:zhoutianhao218@gmail.com"style="text-decoration:none"><img src="https://img.shields.io/badge/Email-zhoutianhao218@gmail.com-red?logo=gmail&logoColor=white" /></a>&nbsp;<a href="https://github.com/RightTr" style="text-decoration:none"><img src="https://img.shields.io/badge/GitHub-RightTr-black?logo=github&logoColor=white" /></a>&nbsp;<img src="https://img.shields.io/badge/WeChat-zhou20050110-07C160?logo=wechat&logoColor=white" />
+    <a href="mailto:zhoutianhao218@gmail.com"style="text-decoration:none"><img src="https://img.shields.io/badge/Email-zhoutianhao218@gmail.com-red?logo=gmail&logoColor=white" /></a>&nbsp;<a href="mailto:zhoutianhao314@whu.edu.cn"style="text-decoration:none"><img src="https://img.shields.io/badge/Academic-zhoutianhao314@whu.edu.cn-blue?logo=gmail&logoColor=white" /></a>&nbsp;<a href="https://github.com/RightTr" style="text-decoration:none"><img src="https://img.shields.io/badge/GitHub-RightTr-black?logo=github&logoColor=white" /></a>&nbsp;<img src="https://img.shields.io/badge/WeChat-zhou20050110-07C160?logo=wechat&logoColor=white" />
 </p>
 
 # Education
 
-🏫 Wuhan University 2023-now
+#### 🏫 Wuhan University 2023-now
 
 <p align="center">
     <img src="assets/WuhanUniversity.svg?v=2" width="150" />
@@ -22,7 +22,7 @@ My work mainly focuses on **multisensor fusion for localization 📍, mapping �
 
 # Skills
 
-* 💻 Progrmamming Languages
+* 💻 Programming Languages
 
 <p align="center">
     <img src="https://img.shields.io/badge/C-A8B9CC?logo=c&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/C++-00599C?logo=cplusplus&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" />
