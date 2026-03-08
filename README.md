@@ -1,6 +1,6 @@
 # Hi, Tianhao Zhou here👋
 
-### Robotics euthusiast🤖, SLAMer
+### Robotics 🤖, SLAMer
   
 I'm pursuing a 🎓 B.Eng. degree in Robotics Engineering at Wuhan University, with an expected graduation date in 2027. My research interests include **Simultaneous Localization and Mapping (SLAM)** 🗺️, **3D Computer Vision** 👁️ and **Multi-modal Sensor Fusion 📡**. If you are interested in my research, feel free to contact me.
 
