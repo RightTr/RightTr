@@ -33,7 +33,7 @@ My work mainly focuses on **multisensor fusion for localization 📍, mapping �
 * 🛠️ Tools and Frameworks
 
 <p align="center">
-    <img src="https://img.shields.io/badge/OpenCV-5C3EE8?logo=opencv&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/ROS-22314E?logo=ros&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/PCL-9CF8E6?logo=pcl&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/g2o-FF6B6B?logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/Ceres-4CAF50?logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/GTSAM-2196F3?logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/TensorRT-76B900?logo=nvidia&logoColor=white" />
+    <img src="https://img.shields.io/badge/OpenCV-5C3EE8?logo=opencv&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/ROS-22314E?logo=ros&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/PCL-9CF8E6?logo=pcl&logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/g2o-FF6B6B?logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/Ceres Solver-4CAF50?logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/GTSAM-2196F3?logoColor=white" />&nbsp;<img src="https://img.shields.io/badge/TensorRT-76B900?logo=nvidia&logoColor=white" />
 </p>
 
 * 🔧 Hardware & Embedded Systems
