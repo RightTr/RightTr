@@ -4,7 +4,7 @@
   
 I'm pursuing a 🎓 B.Eng. degree in Robotics Engineering at Wuhan University, with an expected graduation date in 2027. My research interests include **Simultaneous Localization and Mapping (SLAM)** 🗺️, **3D Computer Vision** 👁️ and **Multi-modal Sensor Fusion** 📡. If you are interested in my research, feel free to contact me.
 
-My work mainly focuses on **multisensor fusion for localization and mapping**. My current reaserch interests include large-scale, globally consistent mapping for building inspection and robotic exploration 🤖 in **challenging and adverse environments**.
+My work mainly focuses on **multisensor fusion for localization and mapping**. My current reaserch interests include large-scale, globally consistent mapping for building inspection and robotic exploration in **challenging and adverse environments**.
 
 # Contact
 
