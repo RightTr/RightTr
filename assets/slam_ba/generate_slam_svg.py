@@ -32,9 +32,9 @@ FEATURES = [
     {"t": 0.86, "d": -33, "s": 3.1},
 ]
 
-CAMERA_OFFSETS = [-0.055, 0.0, 0.055]
-CAMERA_SCALES = [0.82, 1.0, 0.82]
-CAMERA_ALPHA = [0.42, 1.0, 0.42]
+CAMERA_OFFSETS = [-0.042, 0.0, 0.065]
+CAMERA_SCALES = [0.62, 1.0, 0.82]
+CAMERA_ALPHA = [0.70, 1.0, 0.70]
 
 
 def clamp(v: float, a: float, b: float) -> float:
