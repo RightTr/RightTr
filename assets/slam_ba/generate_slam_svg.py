@@ -9,27 +9,50 @@ from xml.etree import ElementTree as ET
 
 W = 1200
 H = 760
+VIEWBOX_X = 300.0
+VIEWBOX_Y = 190.0
+VIEWBOX_W = 620.0
+VIEWBOX_H = 420.0
+ROUTE_SCALE = 0.84
+FEATURE_SPREAD = 0.72
+TITLE_W = 304.0
+TITLE_H = 76.0
+TITLE_LETTER_RECTS = [
+    (-148.0, -91.0, -35.0, 34.0),  # S
+    (-80.0, -34.0, -35.0, 34.0),   # L
+    (-23.0, 39.0, -35.0, 34.0),    # A
+    (54.0, 145.0, -35.0, 34.0),    # M
+]
+TITLE_LINK_OVERLAP_PX = 25.0
+TITLE_LINK_FULL_DIST = 130.0
+TITLE_LINK_MAX_DIST = 255.0
+ROUTE_WAVE_AMP_PX = 6.0
+ROUTE_WAVE_FREQ = 8.0
+ROUTE_WAVE_PHASE = 0.4
+CAMERA_FOV_DEG = 150.0
 FRAMES = 200
 SAMPLES = FRAMES + 1
 DURATION = 20.0
 
 FEATURES = [
-    {"t": 0.05, "d": 74, "s": 5.4},
-    {"t": 0.12, "d": 58, "s": 3.6},
-    {"t": 0.20, "d": 66, "s": 4.9},
-    {"t": 0.31, "d": 60, "s": 3.1},
-    {"t": 0.41, "d": 72, "s": 5.6},
-    {"t": 0.53, "d": 64, "s": 3.8},
-    {"t": 0.63, "d": 78, "s": 5.8},
-    {"t": 0.74, "d": 56, "s": 3.2},
-    {"t": 0.82, "d": 69, "s": 4.7},
-    {"t": 0.90, "d": 61, "s": 3.5},
-    {"t": 0.97, "d": 76, "s": 5.2},
-    {"t": 0.16, "d": -30, "s": 2.8},
-    {"t": 0.34, "d": -38, "s": 3.5},
-    {"t": 0.49, "d": -26, "s": 2.6},
-    {"t": 0.67, "d": -41, "s": 3.8},
-    {"t": 0.86, "d": -33, "s": 3.1},
+    {"t": 0.05, "d": 76, "s": 6.0},
+    {"t": 0.14, "d": 54, "s": 3.1},
+    {"t": 0.23, "d": 67, "s": 5.2},
+    {"t": 0.34, "d": 59, "s": 3.2},
+    {"t": 0.44, "d": 73, "s": 6.2},
+    {"t": 0.55, "d": 61, "s": 3.4},
+    {"t": 0.66, "d": 79, "s": 6.4},
+    {"t": 0.77, "d": 52, "s": 2.9},
+    {"t": 0.87, "d": 68, "s": 5.4},
+    {"t": 0.96, "d": 75, "s": 6.1},
+    {"t": 0.17, "d": -22, "s": 2.4},
+    {"t": 0.28, "d": -30, "s": 3.8},
+    {"t": 0.39, "d": -18, "s": 2.2},
+    {"t": 0.50, "d": -26, "s": 4.0},
+    {"t": 0.61, "d": -21, "s": 2.5},
+    {"t": 0.72, "d": -34, "s": 4.3},
+    {"t": 0.83, "d": -16, "s": 2.1},
+    {"t": 0.93, "d": -28, "s": 3.5},
 ]
 
 CAMERA_OFFSETS = [-0.042, 0.0, 0.065]
@@ -46,11 +69,11 @@ def smoothstep(edge0: float, edge1: float, x: float) -> float:
     return t * t * (3.0 - 2.0 * t)
 
 
-def route_point(t: float) -> tuple[float, float]:
+def _route_point_base(t: float) -> tuple[float, float]:
     cx = W * 0.505
     cy = H * 0.53
-    a = W * 0.225
-    b = H * 0.235
+    a = W * 0.225 * ROUTE_SCALE
+    b = H * 0.235 * ROUTE_SCALE
     th = t * math.pi * 2.0
     x = cx + a * (
         0.98 * math.cos(th)
@@ -65,11 +88,28 @@ def route_point(t: float) -> tuple[float, float]:
     return x, y
 
 
+def _route_tangent_base(t: float) -> tuple[float, float]:
+    p1 = _route_point_base((t + 0.002) % 1.0)
+    p0 = _route_point_base((t - 0.002 + 1.0) % 1.0)
+    return p1[0] - p0[0], p1[1] - p0[1]
+
+
+def route_point(t: float) -> tuple[float, float]:
+    # Add a subtle "wavy" displacement around the base ellipse, along the local normal.
+    x, y = _route_point_base(t)
+    tx, ty = _route_tangent_base(t)
+    tlen = max(1e-6, math.hypot(tx, ty))
+    nx = -ty / tlen
+    ny = tx / tlen
+    th = t * math.pi * 2.0
+    wave = ROUTE_WAVE_AMP_PX * math.sin(ROUTE_WAVE_FREQ * th + ROUTE_WAVE_PHASE)
+    return x + nx * wave, y + ny * wave
+
+
 def route_tangent(t: float) -> tuple[float, float]:
     p1 = route_point((t + 0.002) % 1.0)
     p0 = route_point((t - 0.002 + 1.0) % 1.0)
     return p1[0] - p0[0], p1[1] - p0[1]
-
 
 def fmt(v: float) -> str:
     return f"{v:.2f}"
@@ -85,6 +125,79 @@ def key_times(n: int) -> str:
 
 def camera_state(t: float, offset: float) -> tuple[float, float]:
     return route_point((t + offset + 1.0) % 1.0)
+
+
+def title_center() -> tuple[float, float]:
+    # Keep the title anchored to the route's geometric center, not the viewBox center.
+    return W * 0.505, H * 0.53
+
+
+def title_letter_center(letter_index: int) -> tuple[float, float]:
+    cx, cy = title_center()
+    left, right, top, bottom = TITLE_LETTER_RECTS[letter_index]
+    return cx + (left + right) / 2.0, cy + (top + bottom) / 2.0
+
+
+def nearest_title_letter(cam: tuple[float, float]) -> int:
+    distances = []
+    for idx in range(len(TITLE_LETTER_RECTS)):
+        lx, ly = title_letter_center(idx)
+        distances.append((math.hypot(lx - cam[0], ly - cam[1]), idx))
+    return min(distances, key=lambda item: item[0])[1]
+
+
+def ray_intersect_title_letter(
+    cam: tuple[float, float],
+    via: tuple[float, float],
+    letter_index: int,
+) -> tuple[float, float]:
+    """
+    Intersection of the ray (cam -> via -> ...) with one approximate letter outline.
+    """
+    dx = via[0] - cam[0]
+    dy = via[1] - cam[1]
+    dlen = math.hypot(dx, dy)
+    if dlen < 1e-6:
+        return title_center()
+    dx /= dlen
+    dy /= dlen
+
+    cx, cy = title_center()
+    left, right, top, bottom = TITLE_LETTER_RECTS[letter_index]
+    left += cx
+    right += cx
+    top += cy
+    bottom += cy
+    candidates: list[tuple[float, float, float]] = []
+
+    if abs(dx) > 1e-9:
+        s = (left - cam[0]) / dx
+        if s > 0:
+            y = cam[1] + dy * s
+            if top - 1e-6 <= y <= bottom + 1e-6:
+                candidates.append((s, left, y))
+        s = (right - cam[0]) / dx
+        if s > 0:
+            y = cam[1] + dy * s
+            if top - 1e-6 <= y <= bottom + 1e-6:
+                candidates.append((s, right, y))
+
+    if abs(dy) > 1e-9:
+        s = (top - cam[1]) / dy
+        if s > 0:
+            x = cam[0] + dx * s
+            if left - 1e-6 <= x <= right + 1e-6:
+                candidates.append((s, x, top))
+        s = (bottom - cam[1]) / dy
+        if s > 0:
+            x = cam[0] + dx * s
+            if left - 1e-6 <= x <= right + 1e-6:
+                candidates.append((s, x, bottom))
+
+    if not candidates:
+        return cx, cy
+    s, x, y = min(candidates, key=lambda it: it[0])
+    return x + dx * TITLE_LINK_OVERLAP_PX, y + dy * TITLE_LINK_OVERLAP_PX
 
 
 def sample_camera(offset: float) -> tuple[list[str], list[str]]:
@@ -113,8 +226,8 @@ def sample_feature(feature: dict[str, float], idx: int):
         ux = dx / length
         uy = dy / length
 
-        px = landmark[0] + ux * feature["d"] + math.sin(t * 2.1 + idx) * 2.4
-        py = landmark[1] + uy * feature["d"] + math.cos(t * 1.7 + idx * 0.8) * 2.0
+        px = landmark[0] + ux * feature["d"] * FEATURE_SPREAD + math.sin(t * 2.1 + idx) * 2.0
+        py = landmark[1] + uy * feature["d"] * FEATURE_SPREAD + math.cos(t * 1.7 + idx * 0.8) * 1.7
 
         pulse = 0.45 + 0.55 * max(0.0, math.sin(t * 3.0 + idx * 0.7))
         alpha = 0.4 + pulse * 0.55
@@ -144,20 +257,58 @@ def sample_line_opacities(
         length = max(1.0, math.hypot(dx, dy))
         ux = dx / length
         uy = dy / length
-        px = landmark[0] + ux * feature["d"] + math.sin(t * 2.1 + idx) * 2.4
-        py = landmark[1] + uy * feature["d"] + math.cos(t * 1.7 + idx * 0.8) * 2.0
+        px = landmark[0] + ux * feature["d"] * FEATURE_SPREAD + math.sin(t * 2.1 + idx) * 2.0
+        py = landmark[1] + uy * feature["d"] * FEATURE_SPREAD + math.cos(t * 1.7 + idx * 0.8) * 1.7
 
-        dist_gate = smoothstep(340, 90, math.hypot(px - cam[0], py - cam[1])) * 0.82 * 0.8
+        view_x = title_center()[0] - cam[0]
+        view_y = title_center()[1] - cam[1]
+        feat_x = px - cam[0]
+        feat_y = py - cam[1]
+        view_len = max(1.0, math.hypot(view_x, view_y))
+        feat_len = max(1.0, math.hypot(feat_x, feat_y))
+        view_cos = (view_x * feat_x + view_y * feat_y) / (view_len * feat_len)
+        min_view_cos = math.cos(math.radians(CAMERA_FOV_DEG / 2.0))
+        inward_gate = 1.0 if view_cos >= min_view_cos else 0.0
+
+        dist_gate = smoothstep(285, 75, math.hypot(px - cam[0], py - cam[1])) * 0.82 * 0.8
         forward_delta = (feature["t"] - ((t + cam_offset + 1.0) % 1.0) + 1.0) % 1.0
         if forward_delta > 0.5:
             ahead_gate = 0.0
         else:
             ahead_gate = smoothstep(0.00, 0.06, forward_delta) * (1.0 - smoothstep(0.18, 0.28, forward_delta))
 
-        line_alpha = dist_gate * ahead_gate * cam_weight
+        line_alpha = dist_gate * ahead_gate * inward_gate * cam_weight
         line_opacities.append(f"{line_alpha:.3f}")
 
     return line_opacities
+
+
+def sample_title_edge_points(
+    cam_offset: float,
+) -> tuple[list[str], list[str], list[float]]:
+    xs: list[str] = []
+    ys: list[str] = []
+    distances: list[float] = []
+    for i in range(SAMPLES):
+        t = i / FRAMES
+        cam = camera_state(t, cam_offset)
+
+        letter_index = nearest_title_letter(cam)
+        ex, ey = ray_intersect_title_letter(cam, title_letter_center(letter_index), letter_index)
+        xs.append(fmt(ex))
+        ys.append(fmt(ey))
+        distances.append(math.hypot(ex - cam[0], ey - cam[1]))
+    return xs, ys, distances
+
+
+def sample_title_line_opacities(cam_weight: float, cam_idx: int, distances: list[float]) -> list[str]:
+    values: list[str] = []
+    for i, dist in enumerate(distances):
+        t = i / FRAMES
+        pulse = 0.72 + 0.28 * max(0.0, math.sin(t * 3.0 + cam_idx * 1.2))
+        distance_gate = smoothstep(TITLE_LINK_MAX_DIST, TITLE_LINK_FULL_DIST, dist)
+        values.append(f"{0.34 * cam_weight * pulse * distance_gate:.3f}")
+    return values
 
 
 def build_svg() -> ET.Element:
@@ -169,9 +320,9 @@ def build_svg() -> ET.Element:
         {
             "xmlns": "http://www.w3.org/2000/svg",
             "xmlns:xlink": "http://www.w3.org/1999/xlink",
-            "width": "723.47",
-            "height": "484.24",
-            "viewBox": "256.74 153.15 723.47 484.24",
+            "width": fmt(VIEWBOX_W),
+            "height": fmt(VIEWBOX_H),
+            "viewBox": f"{fmt(VIEWBOX_X)} {fmt(VIEWBOX_Y)} {fmt(VIEWBOX_W)} {fmt(VIEWBOX_H)}",
             "role": "img",
             "aria-label": "Animated SLAM card",
         },
@@ -186,6 +337,7 @@ def build_svg() -> ET.Element:
       .landmark-fill { fill: #f4b35f; }
       .landmark-ring { fill: none; stroke: #ffd27e; stroke-width: 1.4; }
       .link { fill: none; stroke: #ffcf7a; stroke-width: 1.6; stroke-linecap: round; opacity: 0; }
+      .title-link { fill: none; stroke: #ffcf7a; stroke-width: 1.35; stroke-linecap: round; opacity: 0; }
       .camera-ring { fill: none; stroke: #ffd27e; stroke-width: 1.8; }
       .camera-core { fill: #fff0cc; }
     """.strip()
@@ -279,46 +431,47 @@ def build_svg() -> ET.Element:
     for idx, (feature, feat_xs, feat_ys, feat_opacities) in enumerate(feature_samples):
         for cam_idx, ((cam_xs, cam_ys), cam_offset, cam_weight) in enumerate(zip(camera_samples, CAMERA_OFFSETS, CAMERA_ALPHA)):
             line_opacities = sample_line_opacities(feature, idx, cam_offset, cam_weight)
-            line = ET.SubElement(svg, "line", {
+            # Segment A: camera -> landmark
+            seg_a = ET.SubElement(svg, "line", {
                 "class": "link",
-                "x1": feat_xs[0],
-                "y1": feat_ys[0],
-                "x2": cam_xs[0],
-                "y2": cam_ys[0],
+                "x1": cam_xs[0],
+                "y1": cam_ys[0],
+                "x2": feat_xs[0],
+                "y2": feat_ys[0],
             })
-            ET.SubElement(line, "animate", {
+            ET.SubElement(seg_a, "animate", {
                 "attributeName": "x1",
-                "dur": f"{DURATION}s",
-                "repeatCount": "indefinite",
-                "values": join(feat_xs),
-                "keyTimes": key_times(SAMPLES),
-                "calcMode": "linear",
-            })
-            ET.SubElement(line, "animate", {
-                "attributeName": "y1",
-                "dur": f"{DURATION}s",
-                "repeatCount": "indefinite",
-                "values": join(feat_ys),
-                "keyTimes": key_times(SAMPLES),
-                "calcMode": "linear",
-            })
-            ET.SubElement(line, "animate", {
-                "attributeName": "x2",
                 "dur": f"{DURATION}s",
                 "repeatCount": "indefinite",
                 "values": join(cam_xs),
                 "keyTimes": key_times(SAMPLES),
                 "calcMode": "linear",
             })
-            ET.SubElement(line, "animate", {
-                "attributeName": "y2",
+            ET.SubElement(seg_a, "animate", {
+                "attributeName": "y1",
                 "dur": f"{DURATION}s",
                 "repeatCount": "indefinite",
                 "values": join(cam_ys),
                 "keyTimes": key_times(SAMPLES),
                 "calcMode": "linear",
             })
-            ET.SubElement(line, "animate", {
+            ET.SubElement(seg_a, "animate", {
+                "attributeName": "x2",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(feat_xs),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(seg_a, "animate", {
+                "attributeName": "y2",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(feat_ys),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(seg_a, "animate", {
                 "attributeName": "opacity",
                 "dur": f"{DURATION}s",
                 "repeatCount": "indefinite",
@@ -326,6 +479,57 @@ def build_svg() -> ET.Element:
                 "keyTimes": key_times(SAMPLES),
                 "calcMode": "linear",
             })
+
+    for cam_idx, ((cam_xs, cam_ys), cam_offset, cam_weight) in enumerate(zip(camera_samples, CAMERA_OFFSETS, CAMERA_ALPHA)):
+        edge_xs, edge_ys, title_distances = sample_title_edge_points(cam_offset)
+        title_opacities = sample_title_line_opacities(cam_weight, cam_idx, title_distances)
+        title_line = ET.SubElement(svg, "line", {
+            "class": "title-link",
+            "x1": cam_xs[0],
+            "y1": cam_ys[0],
+            "x2": edge_xs[0],
+            "y2": edge_ys[0],
+        })
+        ET.SubElement(title_line, "animate", {
+            "attributeName": "x1",
+            "dur": f"{DURATION}s",
+            "repeatCount": "indefinite",
+            "values": join(cam_xs),
+            "keyTimes": key_times(SAMPLES),
+            "calcMode": "linear",
+        })
+        ET.SubElement(title_line, "animate", {
+            "attributeName": "y1",
+            "dur": f"{DURATION}s",
+            "repeatCount": "indefinite",
+            "values": join(cam_ys),
+            "keyTimes": key_times(SAMPLES),
+            "calcMode": "linear",
+        })
+        ET.SubElement(title_line, "animate", {
+            "attributeName": "x2",
+            "dur": f"{DURATION}s",
+            "repeatCount": "indefinite",
+            "values": join(edge_xs),
+            "keyTimes": key_times(SAMPLES),
+            "calcMode": "linear",
+        })
+        ET.SubElement(title_line, "animate", {
+            "attributeName": "y2",
+            "dur": f"{DURATION}s",
+            "repeatCount": "indefinite",
+            "values": join(edge_ys),
+            "keyTimes": key_times(SAMPLES),
+            "calcMode": "linear",
+        })
+        ET.SubElement(title_line, "animate", {
+            "attributeName": "opacity",
+            "dur": f"{DURATION}s",
+            "repeatCount": "indefinite",
+            "values": join(title_opacities),
+            "keyTimes": key_times(SAMPLES),
+            "calcMode": "linear",
+        })
 
     for cam_idx, ((cam_xs, cam_ys), cam_scale, cam_alpha) in enumerate(zip(camera_samples, CAMERA_SCALES, CAMERA_ALPHA)):
         camera = ET.SubElement(svg, "g", {"id": f"camera-{cam_idx}"})
@@ -378,8 +582,8 @@ def build_svg() -> ET.Element:
         })
 
     title = ET.SubElement(svg, "text", {
-        "x": "618.47",
-        "y": "395.27",
+        "x": fmt(title_center()[0]),
+        "y": fmt(title_center()[1]),
         "text-anchor": "middle",
         "dominant-baseline": "middle",
         "font-family": "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
