@@ -4,7 +4,7 @@
 
 <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; border: 0; width: 100%;">
   <tr>
-    <td width="50%" valign="middle" style="padding: 0 0 0 12px; border: 0;">
+    <td width="50%" valign="middle" style="padding: 0 12px 0 0; border: 0;">
       I'm pursuing a 🎓 B.Eng. degree in Robotics Engineering at Wuhan University, with an expected graduation date in 2027. My research interests include <strong>Simultaneous Localization and Mapping (SLAM)</strong> 🗺️, <strong>3D Computer Vision</strong> 👁️ and <strong>Multi-modal Sensor Fusion</strong> 📡. If you are interested in my research, feel free to contact me.<br><br>
       My work mainly focuses on <strong>multisensor fusion for localization and mapping</strong>. My current research interests include large-scale, globally consistent mapping for building inspection and robotic exploration in <strong>challenging and adverse environments</strong>.
     </td>

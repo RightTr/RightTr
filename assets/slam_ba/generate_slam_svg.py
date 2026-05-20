@@ -32,6 +32,10 @@ FEATURES = [
     {"t": 0.86, "d": -33, "s": 3.1},
 ]
 
+CAMERA_OFFSETS = [-0.055, 0.0, 0.055]
+CAMERA_SCALES = [0.82, 1.0, 0.82]
+CAMERA_ALPHA = [0.42, 1.0, 0.42]
+
 
 def clamp(v: float, a: float, b: float) -> float:
     return max(a, min(b, v))
@@ -79,20 +83,28 @@ def key_times(n: int) -> str:
     return ";".join(f"{i / (n - 1):.6f}" for i in range(n))
 
 
-def sample_feature(feature: dict[str, float], idx: int):
+def camera_state(t: float, offset: float) -> tuple[float, float]:
+    return route_point((t + offset + 1.0) % 1.0)
+
+
+def sample_camera(offset: float) -> tuple[list[str], list[str]]:
     cam_xs: list[str] = []
     cam_ys: list[str] = []
+    for i in range(SAMPLES):
+        t = i / FRAMES
+        cam = camera_state(t, offset)
+        cam_xs.append(fmt(cam[0]))
+        cam_ys.append(fmt(cam[1]))
+    return cam_xs, cam_ys
+
+
+def sample_feature(feature: dict[str, float], idx: int):
     feat_xs: list[str] = []
     feat_ys: list[str] = []
     feat_opacities: list[str] = []
-    line_opacities: list[str] = []
 
     for i in range(SAMPLES):
         t = i / FRAMES
-        cam = route_point(t)
-        tan = route_tangent(t)
-        tangent_len = max(1e-6, math.hypot(tan[0], tan[1]))
-        tx, ty = tan[0] / tangent_len, tan[1] / tangent_len
 
         landmark = route_point(feature["t"])
         dx = landmark[0] - W * 0.51
@@ -106,24 +118,46 @@ def sample_feature(feature: dict[str, float], idx: int):
 
         pulse = 0.45 + 0.55 * max(0.0, math.sin(t * 3.0 + idx * 0.7))
         alpha = 0.4 + pulse * 0.55
-        dist_gate = smoothstep(340, 90, math.hypot(px - cam[0], py - cam[1])) * 0.82 * 0.8
 
-        forward_delta = (feature["t"] - t + 1.0) % 1.0
-        if forward_delta > 0.5:
-            ahead_gate = 0.0
-        else:
-            ahead_gate = smoothstep(0.00, 0.06, forward_delta) * (1.0 - smoothstep(0.20, 0.30, forward_delta))
-
-        line_alpha = dist_gate * ahead_gate
-
-        cam_xs.append(fmt(cam[0]))
-        cam_ys.append(fmt(cam[1]))
         feat_xs.append(fmt(px))
         feat_ys.append(fmt(py))
         feat_opacities.append(f"{alpha:.3f}")
+
+    return feat_xs, feat_ys, feat_opacities
+
+
+def sample_line_opacities(
+    feature: dict[str, float],
+    idx: int,
+    cam_offset: float,
+    cam_weight: float,
+) -> list[str]:
+    line_opacities: list[str] = []
+
+    for i in range(SAMPLES):
+        t = i / FRAMES
+        cam = camera_state(t, cam_offset)
+
+        landmark = route_point(feature["t"])
+        dx = landmark[0] - W * 0.51
+        dy = landmark[1] - H * 0.56
+        length = max(1.0, math.hypot(dx, dy))
+        ux = dx / length
+        uy = dy / length
+        px = landmark[0] + ux * feature["d"] + math.sin(t * 2.1 + idx) * 2.4
+        py = landmark[1] + uy * feature["d"] + math.cos(t * 1.7 + idx * 0.8) * 2.0
+
+        dist_gate = smoothstep(340, 90, math.hypot(px - cam[0], py - cam[1])) * 0.82 * 0.8
+        forward_delta = (feature["t"] - ((t + cam_offset + 1.0) % 1.0) + 1.0) % 1.0
+        if forward_delta > 0.5:
+            ahead_gate = 0.0
+        else:
+            ahead_gate = smoothstep(0.00, 0.06, forward_delta) * (1.0 - smoothstep(0.18, 0.28, forward_delta))
+
+        line_alpha = dist_gate * ahead_gate * cam_weight
         line_opacities.append(f"{line_alpha:.3f}")
 
-    return cam_xs, cam_ys, feat_xs, feat_ys, feat_opacities, line_opacities
+    return line_opacities
 
 
 def build_svg() -> ET.Element:
@@ -169,11 +203,13 @@ def build_svg() -> ET.Element:
         "values": "0;-220",
     })
 
-    samples = []
+    feature_samples = []
     for idx, feature in enumerate(FEATURES):
-        samples.append((feature, *sample_feature(feature, idx)))
+        feature_samples.append((feature, *sample_feature(feature, idx)))
 
-    for idx, (feature, cam_xs, cam_ys, feat_xs, feat_ys, feat_opacities, line_opacities) in enumerate(samples):
+    camera_samples = [sample_camera(offset) for offset in CAMERA_OFFSETS]
+
+    for idx, (feature, feat_xs, feat_ys, feat_opacities) in enumerate(feature_samples):
         g = ET.SubElement(svg, "g", {"id": f"landmark-{idx}"})
         r_ring = feature["s"] + 1.5
         r_fill = feature["s"]
@@ -240,102 +276,106 @@ def build_svg() -> ET.Element:
             "calcMode": "linear",
         })
 
-    for idx, (feature, cam_xs, cam_ys, feat_xs, feat_ys, feat_opacities, line_opacities) in enumerate(samples):
-        line = ET.SubElement(svg, "line", {
-            "class": "link",
-            "x1": feat_xs[0],
-            "y1": feat_ys[0],
-            "x2": cam_xs[0],
-            "y2": cam_ys[0],
+    for idx, (feature, feat_xs, feat_ys, feat_opacities) in enumerate(feature_samples):
+        for cam_idx, ((cam_xs, cam_ys), cam_offset, cam_weight) in enumerate(zip(camera_samples, CAMERA_OFFSETS, CAMERA_ALPHA)):
+            line_opacities = sample_line_opacities(feature, idx, cam_offset, cam_weight)
+            line = ET.SubElement(svg, "line", {
+                "class": "link",
+                "x1": feat_xs[0],
+                "y1": feat_ys[0],
+                "x2": cam_xs[0],
+                "y2": cam_ys[0],
+            })
+            ET.SubElement(line, "animate", {
+                "attributeName": "x1",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(feat_xs),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(line, "animate", {
+                "attributeName": "y1",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(feat_ys),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(line, "animate", {
+                "attributeName": "x2",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(cam_xs),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(line, "animate", {
+                "attributeName": "y2",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(cam_ys),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(line, "animate", {
+                "attributeName": "opacity",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(line_opacities),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+
+    for cam_idx, ((cam_xs, cam_ys), cam_scale, cam_alpha) in enumerate(zip(camera_samples, CAMERA_SCALES, CAMERA_ALPHA)):
+        camera = ET.SubElement(svg, "g", {"id": f"camera-{cam_idx}"})
+        cam_ring = ET.SubElement(camera, "circle", {
+            "class": "camera-ring",
+            "cx": cam_xs[0],
+            "cy": cam_ys[0],
+            "r": f"{10.5 * cam_scale:.2f}",
+            "opacity": f"{cam_alpha:.2f}",
         })
-        ET.SubElement(line, "animate", {
-            "attributeName": "x1",
-            "dur": f"{DURATION}s",
-            "repeatCount": "indefinite",
-            "values": join(feat_xs),
-            "keyTimes": key_times(SAMPLES),
-            "calcMode": "linear",
-        })
-        ET.SubElement(line, "animate", {
-            "attributeName": "y1",
-            "dur": f"{DURATION}s",
-            "repeatCount": "indefinite",
-            "values": join(feat_ys),
-            "keyTimes": key_times(SAMPLES),
-            "calcMode": "linear",
-        })
-        ET.SubElement(line, "animate", {
-            "attributeName": "x2",
+        ET.SubElement(cam_ring, "animate", {
+            "attributeName": "cx",
             "dur": f"{DURATION}s",
             "repeatCount": "indefinite",
             "values": join(cam_xs),
             "keyTimes": key_times(SAMPLES),
             "calcMode": "linear",
         })
-        ET.SubElement(line, "animate", {
-            "attributeName": "y2",
+        ET.SubElement(cam_ring, "animate", {
+            "attributeName": "cy",
             "dur": f"{DURATION}s",
             "repeatCount": "indefinite",
             "values": join(cam_ys),
             "keyTimes": key_times(SAMPLES),
             "calcMode": "linear",
         })
-        ET.SubElement(line, "animate", {
-            "attributeName": "opacity",
+
+        cam_core = ET.SubElement(camera, "circle", {
+            "class": "camera-core",
+            "cx": cam_xs[0],
+            "cy": cam_ys[0],
+            "r": f"{4.2 * cam_scale:.2f}",
+            "opacity": f"{max(0.34, cam_alpha):.2f}",
+        })
+        ET.SubElement(cam_core, "animate", {
+            "attributeName": "cx",
             "dur": f"{DURATION}s",
             "repeatCount": "indefinite",
-            "values": join(line_opacities),
+            "values": join(cam_xs),
             "keyTimes": key_times(SAMPLES),
             "calcMode": "linear",
         })
-
-    cam_xs, cam_ys, _, _, _, _ = samples[0][1:]
-    camera = ET.SubElement(svg, "g", {"id": "camera"})
-    cam_ring = ET.SubElement(camera, "circle", {
-        "class": "camera-ring",
-        "cx": cam_xs[0],
-        "cy": cam_ys[0],
-        "r": "10.5",
-    })
-    ET.SubElement(cam_ring, "animate", {
-        "attributeName": "cx",
-        "dur": f"{DURATION}s",
-        "repeatCount": "indefinite",
-        "values": join(cam_xs),
-        "keyTimes": key_times(SAMPLES),
-        "calcMode": "linear",
-    })
-    ET.SubElement(cam_ring, "animate", {
-        "attributeName": "cy",
-        "dur": f"{DURATION}s",
-        "repeatCount": "indefinite",
-        "values": join(cam_ys),
-        "keyTimes": key_times(SAMPLES),
-        "calcMode": "linear",
-    })
-
-    cam_core = ET.SubElement(camera, "circle", {
-        "class": "camera-core",
-        "cx": cam_xs[0],
-        "cy": cam_ys[0],
-        "r": "4.2",
-    })
-    ET.SubElement(cam_core, "animate", {
-        "attributeName": "cx",
-        "dur": f"{DURATION}s",
-        "repeatCount": "indefinite",
-        "values": join(cam_xs),
-        "keyTimes": key_times(SAMPLES),
-        "calcMode": "linear",
-    })
-    ET.SubElement(cam_core, "animate", {
-        "attributeName": "cy",
-        "dur": f"{DURATION}s",
-        "repeatCount": "indefinite",
-        "values": join(cam_ys),
-        "keyTimes": key_times(SAMPLES),
-        "calcMode": "linear",
-    })
+        ET.SubElement(cam_core, "animate", {
+            "attributeName": "cy",
+            "dur": f"{DURATION}s",
+            "repeatCount": "indefinite",
+            "values": join(cam_ys),
+            "keyTimes": key_times(SAMPLES),
+            "calcMode": "linear",
+        })
 
     title = ET.SubElement(svg, "text", {
         "x": "618.47",
