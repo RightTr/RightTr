@@ -465,43 +465,51 @@ def build_svg() -> ET.Element:
     })
     ET.SubElement(reveal_filter, "feGaussianBlur", {"stdDeviation": "6"})
 
-    route_pts, route_reveal_lengths, route_total_len = sample_camera_path(CAMERA_OFFSETS[0], CAMERA_LAPS[0])
-    route_d = "M " + " L ".join(f"{x:.2f} {y:.2f}" for x, y in route_pts)
-    route_hidden = f"0 {fmt(route_total_len)}"
-    route_dash_values = [f"{length} {fmt(route_total_len)}" for length in route_reveal_lengths]
+    camera_samples = [sample_camera(offset, laps) for offset, laps in zip(CAMERA_OFFSETS, CAMERA_LAPS)]
 
-    main = ET.SubElement(svg, "path", {
-        "class": "route-main",
-        "d": route_d,
-        "stroke-dasharray": route_hidden,
-    })
-    ET.SubElement(main, "animate", {
-        "attributeName": "stroke-dasharray",
-        "dur": f"{DURATION}s",
-        "repeatCount": "indefinite",
-        "values": join(route_dash_values),
-        "keyTimes": key_times(SAMPLES),
-        "calcMode": "linear",
-    })
+    route_alphas = [1.00, 0.86, 0.76]
+    for route_idx, (cam_offset, cam_laps, route_alpha) in enumerate(zip(CAMERA_OFFSETS, CAMERA_LAPS, route_alphas)):
+        route_pts, route_reveal_lengths, route_total_len = sample_camera_path(cam_offset, cam_laps)
+        route_d = "M " + " L ".join(f"{x:.2f} {y:.2f}" for x, y in route_pts)
+        route_hidden = f"0 {fmt(route_total_len)}"
+        route_dash_values = [f"{length} {fmt(route_total_len)}" for length in route_reveal_lengths]
 
-    dash = ET.SubElement(svg, "path", {
-        "class": "route-dash",
-        "d": route_d,
-        "stroke-dasharray": route_hidden,
-    })
-    ET.SubElement(dash, "animate", {
-        "attributeName": "stroke-dasharray",
-        "dur": f"{DURATION}s",
-        "repeatCount": "indefinite",
-        "values": join(route_dash_values),
-        "keyTimes": key_times(SAMPLES),
-        "calcMode": "linear",
-    })
+        route_group = ET.SubElement(svg, "g", {
+            "id": f"route-{route_idx}",
+            "opacity": f"{route_alpha:.2f}",
+        })
+
+        main = ET.SubElement(route_group, "path", {
+            "class": "route-main",
+            "d": route_d,
+            "stroke-dasharray": route_hidden,
+        })
+        ET.SubElement(main, "animate", {
+            "attributeName": "stroke-dasharray",
+            "dur": f"{DURATION}s",
+            "repeatCount": "indefinite",
+            "values": join(route_dash_values),
+            "keyTimes": key_times(SAMPLES),
+            "calcMode": "linear",
+        })
+
+        dash = ET.SubElement(route_group, "path", {
+            "class": "route-dash",
+            "d": route_d,
+            "stroke-dasharray": route_hidden,
+        })
+        ET.SubElement(dash, "animate", {
+            "attributeName": "stroke-dasharray",
+            "dur": f"{DURATION}s",
+            "repeatCount": "indefinite",
+            "values": join(route_dash_values),
+            "keyTimes": key_times(SAMPLES),
+            "calcMode": "linear",
+        })
     feature_samples = []
     for idx, feature in enumerate(FEATURES):
         feature_samples.append((feature, *sample_feature(feature, idx), sample_feature_reveal_opacities(feature, idx)))
 
-    camera_samples = [sample_camera(offset, laps) for offset, laps in zip(CAMERA_OFFSETS, CAMERA_LAPS)]
     title_mask = ET.SubElement(defs, "mask", {
         "id": "title-reveal-mask",
         "maskUnits": "userSpaceOnUse",
