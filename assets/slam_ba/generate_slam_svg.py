@@ -26,7 +26,7 @@ TITLE_LETTER_RECTS = [
 ]
 TITLE_LINK_OVERLAP_PX = 25.0
 TITLE_LINK_FULL_DIST = 130.0
-TITLE_LINK_MAX_DIST = 255.0
+TITLE_LINK_MAX_DIST = 320.0
 ROUTE_WAVE_AMP_PX = 6.0
 ROUTE_WAVE_FREQ = 8.0
 ROUTE_WAVE_PHASE = 0.4
@@ -70,9 +70,12 @@ def smoothstep(edge0: float, edge1: float, x: float) -> float:
     return t * t * (3.0 - 2.0 * t)
 
 
+def ellipse_center() -> tuple[float, float]:
+    return W * 0.505, H * 0.53
+
+
 def _route_point_base(t: float) -> tuple[float, float]:
-    cx = W * 0.505
-    cy = H * 0.53
+    cx, cy = ellipse_center()
     a = W * 0.225 * ROUTE_SCALE
     b = H * 0.235 * ROUTE_SCALE
     th = t * math.pi * 2.0
@@ -129,8 +132,8 @@ def camera_state(t: float, offset: float) -> tuple[float, float]:
 
 
 def title_center() -> tuple[float, float]:
-    # Keep the title anchored to the route's geometric center, not the viewBox center.
-    return W * 0.505 + TITLE_SHIFT_X, H * 0.53
+    cx, cy = ellipse_center()
+    return cx + TITLE_SHIFT_X, cy
 
 
 def title_letter_center(letter_index: int) -> tuple[float, float]:
@@ -139,12 +142,21 @@ def title_letter_center(letter_index: int) -> tuple[float, float]:
     return cx + (left + right) / 2.0, cy + (top + bottom) / 2.0
 
 
-def nearest_title_letter(cam: tuple[float, float]) -> int:
-    distances = []
-    for idx in range(len(TITLE_LETTER_RECTS)):
-        lx, ly = title_letter_center(idx)
-        distances.append((math.hypot(lx - cam[0], ly - cam[1]), idx))
-    return min(distances, key=lambda item: item[0])[1]
+def title_letter_visibility_gate(cam: tuple[float, float], letter_index: int) -> float:
+    cx, cy = ellipse_center()
+    view_x = cx - cam[0]
+    view_y = cy - cam[1]
+    view_len = max(1e-6, math.hypot(view_x, view_y))
+    min_view_cos = math.cos(math.radians(CAMERA_FOV_DEG / 2.0))
+
+    lx, ly = title_letter_center(letter_index)
+    feat_x = lx - cam[0]
+    feat_y = ly - cam[1]
+    feat_len = max(1e-6, math.hypot(feat_x, feat_y))
+    view_cos = (view_x * feat_x + view_y * feat_y) / (view_len * feat_len)
+    if view_cos < min_view_cos:
+        return 0.0
+    return smoothstep(TITLE_LINK_MAX_DIST, TITLE_LINK_FULL_DIST, feat_len)
 
 
 def ray_intersect_title_letter(
@@ -261,8 +273,9 @@ def sample_line_opacities(
         px = landmark[0] + ux * feature["d"] * FEATURE_SPREAD + math.sin(t * 2.1 + idx) * 2.0
         py = landmark[1] + uy * feature["d"] * FEATURE_SPREAD + math.cos(t * 1.7 + idx * 0.8) * 1.7
 
-        view_x = title_center()[0] - cam[0]
-        view_y = title_center()[1] - cam[1]
+        center_x, center_y = ellipse_center()
+        view_x = center_x - cam[0]
+        view_y = center_y - cam[1]
         feat_x = px - cam[0]
         feat_y = py - cam[1]
         view_len = max(1.0, math.hypot(view_x, view_y))
@@ -286,29 +299,34 @@ def sample_line_opacities(
 
 def sample_title_edge_points(
     cam_offset: float,
+    letter_index: int,
 ) -> tuple[list[str], list[str], list[float]]:
     xs: list[str] = []
     ys: list[str] = []
-    distances: list[float] = []
+    gates: list[float] = []
     for i in range(SAMPLES):
         t = i / FRAMES
         cam = camera_state(t, cam_offset)
 
-        letter_index = nearest_title_letter(cam)
-        ex, ey = ray_intersect_title_letter(cam, title_letter_center(letter_index), letter_index)
+        letter_center = title_letter_center(letter_index)
+        ex, ey = ray_intersect_title_letter(cam, letter_center, letter_index)
         xs.append(fmt(ex))
         ys.append(fmt(ey))
-        distances.append(math.hypot(ex - cam[0], ey - cam[1]))
-    return xs, ys, distances
+        gates.append(title_letter_visibility_gate(cam, letter_index))
+    return xs, ys, gates
 
 
-def sample_title_line_opacities(cam_weight: float, cam_idx: int, distances: list[float]) -> list[str]:
+def sample_title_line_opacities(
+    cam_weight: float,
+    cam_idx: int,
+    letter_idx: int,
+    gates: list[float],
+) -> list[str]:
     values: list[str] = []
-    for i, dist in enumerate(distances):
+    for i, gate in enumerate(gates):
         t = i / FRAMES
-        pulse = 0.72 + 0.28 * max(0.0, math.sin(t * 3.0 + cam_idx * 1.2))
-        distance_gate = smoothstep(TITLE_LINK_MAX_DIST, TITLE_LINK_FULL_DIST, dist)
-        values.append(f"{0.34 * cam_weight * pulse * distance_gate:.3f}")
+        pulse = 0.72 + 0.28 * max(0.0, math.sin(t * 3.0 + cam_idx * 1.2 + letter_idx * 0.55))
+        values.append(f"{0.34 * cam_weight * pulse * gate:.3f}")
     return values
 
 
@@ -482,55 +500,56 @@ def build_svg() -> ET.Element:
             })
 
     for cam_idx, ((cam_xs, cam_ys), cam_offset, cam_weight) in enumerate(zip(camera_samples, CAMERA_OFFSETS, CAMERA_ALPHA)):
-        edge_xs, edge_ys, title_distances = sample_title_edge_points(cam_offset)
-        title_opacities = sample_title_line_opacities(cam_weight, cam_idx, title_distances)
-        title_line = ET.SubElement(svg, "line", {
-            "class": "title-link",
-            "x1": cam_xs[0],
-            "y1": cam_ys[0],
-            "x2": edge_xs[0],
-            "y2": edge_ys[0],
-        })
-        ET.SubElement(title_line, "animate", {
-            "attributeName": "x1",
-            "dur": f"{DURATION}s",
-            "repeatCount": "indefinite",
-            "values": join(cam_xs),
-            "keyTimes": key_times(SAMPLES),
-            "calcMode": "linear",
-        })
-        ET.SubElement(title_line, "animate", {
-            "attributeName": "y1",
-            "dur": f"{DURATION}s",
-            "repeatCount": "indefinite",
-            "values": join(cam_ys),
-            "keyTimes": key_times(SAMPLES),
-            "calcMode": "linear",
-        })
-        ET.SubElement(title_line, "animate", {
-            "attributeName": "x2",
-            "dur": f"{DURATION}s",
-            "repeatCount": "indefinite",
-            "values": join(edge_xs),
-            "keyTimes": key_times(SAMPLES),
-            "calcMode": "linear",
-        })
-        ET.SubElement(title_line, "animate", {
-            "attributeName": "y2",
-            "dur": f"{DURATION}s",
-            "repeatCount": "indefinite",
-            "values": join(edge_ys),
-            "keyTimes": key_times(SAMPLES),
-            "calcMode": "linear",
-        })
-        ET.SubElement(title_line, "animate", {
-            "attributeName": "opacity",
-            "dur": f"{DURATION}s",
-            "repeatCount": "indefinite",
-            "values": join(title_opacities),
-            "keyTimes": key_times(SAMPLES),
-            "calcMode": "linear",
-        })
+        for letter_idx in range(len(TITLE_LETTER_RECTS)):
+            edge_xs, edge_ys, title_gates = sample_title_edge_points(cam_offset, letter_idx)
+            title_opacities = sample_title_line_opacities(cam_weight, cam_idx, letter_idx, title_gates)
+            title_line = ET.SubElement(svg, "line", {
+                "class": "title-link",
+                "x1": cam_xs[0],
+                "y1": cam_ys[0],
+                "x2": edge_xs[0],
+                "y2": edge_ys[0],
+            })
+            ET.SubElement(title_line, "animate", {
+                "attributeName": "x1",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(cam_xs),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(title_line, "animate", {
+                "attributeName": "y1",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(cam_ys),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(title_line, "animate", {
+                "attributeName": "x2",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(edge_xs),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(title_line, "animate", {
+                "attributeName": "y2",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(edge_ys),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
+            ET.SubElement(title_line, "animate", {
+                "attributeName": "opacity",
+                "dur": f"{DURATION}s",
+                "repeatCount": "indefinite",
+                "values": join(title_opacities),
+                "keyTimes": key_times(SAMPLES),
+                "calcMode": "linear",
+            })
 
     for cam_idx, ((cam_xs, cam_ys), cam_scale, cam_alpha) in enumerate(zip(camera_samples, CAMERA_SCALES, CAMERA_ALPHA)):
         camera = ET.SubElement(svg, "g", {"id": f"camera-{cam_idx}"})
