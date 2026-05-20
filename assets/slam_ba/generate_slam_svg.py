@@ -351,15 +351,15 @@ def build_svg() -> ET.Element:
     defs = ET.SubElement(svg, "defs")
     style = ET.SubElement(defs, "style")
     style.text = """
-      .route-shadow { fill: none; stroke: #1f1b18; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; }
-      .route-main { fill: none; stroke: #e0a45f; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
-      .route-dash { fill: none; stroke: #fff5d8; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 10 14; }
-      .landmark-fill { fill: #f4b35f; }
-      .landmark-ring { fill: none; stroke: #ffd27e; stroke-width: 1.4; }
-      .link { fill: none; stroke: #ffcf7a; stroke-width: 1.6; stroke-linecap: round; opacity: 0; }
-      .title-link { fill: none; stroke: #ffcf7a; stroke-width: 1.35; stroke-linecap: round; opacity: 0; }
-      .camera-ring { fill: none; stroke: #ffd27e; stroke-width: 1.8; }
-      .camera-core { fill: #fff0cc; }
+      .route-shadow { fill: none; stroke: #24160e; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; }
+      .route-main { fill: none; stroke: #f0a53a; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+      .route-dash { fill: none; stroke: #ffe59d; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 10 14; }
+      .landmark-fill { fill: #ffad32; }
+      .landmark-ring { fill: none; stroke: #ffc24f; stroke-width: 1.4; }
+      .link { fill: none; stroke: #ffbd45; stroke-width: 1.6; stroke-linecap: round; opacity: 0; }
+      .title-link { fill: none; stroke: #ffbd45; stroke-width: 1.35; stroke-linecap: round; opacity: 0; }
+      .camera-ring { fill: none; stroke: #ffc24f; stroke-width: 1.8; }
+      .camera-core { fill: #ffe0a3; }
     """.strip()
 
     route_pts = [route_point(i / 360.0) for i in range(361)]
@@ -611,7 +611,7 @@ def build_svg() -> ET.Element:
         "font-size": "76",
         "font-weight": "800",
         "letter-spacing": "0.18em",
-        "fill": "#fff7e3",
+        "fill": "#ffe8b5",
         "opacity": "0.52",
     })
     title.text = "SLAM"
