@@ -17,6 +17,7 @@ ROUTE_SCALE = 0.84
 FEATURE_SPREAD = 0.72
 TITLE_W = 304.0
 TITLE_H = 76.0
+TITLE_SHIFT_X = 18.0
 TITLE_LETTER_RECTS = [
     (-148.0, -91.0, -35.0, 34.0),  # S
     (-80.0, -34.0, -35.0, 34.0),   # L
@@ -129,7 +130,7 @@ def camera_state(t: float, offset: float) -> tuple[float, float]:
 
 def title_center() -> tuple[float, float]:
     # Keep the title anchored to the route's geometric center, not the viewBox center.
-    return W * 0.505, H * 0.53
+    return W * 0.505 + TITLE_SHIFT_X, H * 0.53
 
 
 def title_letter_center(letter_index: int) -> tuple[float, float]:
