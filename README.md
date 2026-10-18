@@ -31,7 +31,7 @@
 # Research Experience
 ### 🛰️ LIESMARS, Wuhan University
 * 2024.9-Present | Wuhan, Hubei, China
-* Research Advisor: [Dr. Jianzhu Huai](https://www.jianzhuhuai.com/)
+* Research Advisor: [Prof. Jianzhu Huai](https://www.jianzhuhuai.com/)
 * Research on robot exploration 🤖 and multisensor fusion for localization and mapping 🌍 in challenging environments.
 <p align="center">
     <img src="assets/LIESMARS.svg?v=2" width="150" />
