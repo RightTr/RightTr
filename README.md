@@ -31,12 +31,12 @@
 # Research Experience
 ### 🛰️ LIESMARS, Wuhan University
 * 2024.9-Present | Wuhan, Hubei, China
-* Research Advisor: Prof. [Jianzhu Huai](https://www.jianzhuhuai.com/)
+* Research Supervisor: Prof. [Jianzhu Huai](https://www.jianzhuhuai.com/)
 * Research on robot exploration and multisensor fusion for localization and mapping in challenging environments.
 
 ### 💻 State Key Lab of CAD&CG, Zhejiang University
 * 2026.7-Present | Hangzhou, Zhejiang, China
-* Research Supervisors: Prof. [Zhaopeng Cui](https://zhpcui.github.io/)
+* Research Supervisor: Prof. [Zhaopeng Cui](https://zhpcui.github.io/)
 
 <p align="center">
     <img src="assets/LIESMARS.svg?v=2" height="80" />
