@@ -33,16 +33,15 @@
 * 2024.9-Present | Wuhan, Hubei, China
 * Research Advisor: Prof. [Jianzhu Huai](https://www.jianzhuhuai.com/)
 * Research on robot exploration and multisensor fusion for localization and mapping in challenging environments.
-<p align="center">
-    <img src="assets/LIESMARS.svg?v=2" width="150" />
-</p>
 
 ### 💻 State Key Lab of CAD&CG, Zhejiang University
 * 2026.7-Present | Hangzhou, Zhejiang, China
 * Research Supervisors: Prof. [Zhaopeng Cui](https://zhpcui.github.io/)
-<!-- <p align="center">
-    <img src="assets/StateKeyLab.svg?v=2" width="150" />
-</p> -->
+
+<p align="center">
+    <img src="assets/LIESMARS.svg?v=2" height="80" />
+    <img src="assets/ZJUCS.png?v=2" height="80" />
+</p>
 
 # Skills
 
