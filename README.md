@@ -39,7 +39,7 @@
 
 ### 💻 State Key Lab of CAD&CG, Zhejiang University
 * 2026.7-Present | Hangzhou, Zhejiang, China
-<!-- * Research Supervisors: Prof. [Zhaopeng Cui](https://zhpcui.github.io/) and Prof. [Hujun Bao](https://person.zju.edu.cn/en/0093140) -->
+* Research Supervisors: Prof. [Zhaopeng Cui](https://zhpcui.github.io/) and Prof. [Hujun Bao](https://person.zju.edu.cn/en/0093140)
 <!-- <p align="center">
     <img src="assets/StateKeyLab.svg?v=2" width="150" />
 </p> -->
