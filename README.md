@@ -34,7 +34,7 @@
 * Research Supervisor: Prof. [Jianzhu Huai](https://www.jianzhuhuai.com/)
 * Research on robot exploration and multisensor fusion for localization and mapping in challenging environments.
 
-### 💻 State Key Lab of CAD&CG, Zhejiang University
+### 💻 ZJU3DV, State Key Lab of CAD&CG, Zhejiang University
 * 2026.7-Present | Hangzhou, Zhejiang, China
 * Research Supervisor: Prof. [Zhaopeng Cui](https://zhpcui.github.io/)
 
